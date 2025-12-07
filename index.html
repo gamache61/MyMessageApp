@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My App</title>
+    
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+
+    <style>
+        /* This makes the app dark and prevents bouncing on mobile */
+        body {
+            margin: 0;
+            background-color: #000000;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden; /* Stops scrolling if you don't need it */
+        }
+    </style>
+</head>
+<body>
+
+    <div style="text-align: center; padding-top: 50px;">
+        <h1>My Custom App</h1>
+        <p></p><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScrollShout - LED Banner</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            display: flex;
+            align-items: center; /* Vertically center the text */
+        }
+
+        /* THE SCROLLING TEXT CONTAINER */
+        #marquee-container {
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            position: absolute;
+        }
+
+        /* THE TEXT ITSELF */
+        #scrolling-text {
+            display: inline-block;
+            font-size: 20vw; /* Huge text responsive to width */
+            font-weight: bold;
+            color: #00ff00; /* Default Neon Green */
+            padding-left: 100%; /* Start off-screen right */
+            animation: scroll-left 10s linear infinite;
+        }
+
+        /* ANIMATION KEYFRAMES */
+        @keyframes scroll-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* LED EFFECT (DOT MATRIX LOOK) */
+        .led-mode {
+            background-image: radial-gradient(#000 20%, transparent 20%), radial-gradient(#000 20%, transparent 20%);
+            background-color: #222;
+            background-position: 0 0, 4px 4px;
+            background-size: 8px 8px;
+            text-shadow: 0 0 10px currentColor; /* Glowing effect */
+        }
+
+        /* CONTROL PANEL STYLES */
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(40, 40, 40, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid #444;
+            
+            /* SMOOTH FADE TRANSITION */
+            opacity: 1;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* HIDDEN STATE CLASS */
+        #controls.hidden {
+            opacity: 0;
+            pointer-events: none; /* Allows clicking through the invisible box */
+            transform: translateX(-50%) translateY(20px); /* Slide down slightly */
+        }
+
+        input, select, button {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        input[type="text"] {
+            background: #eee;
+        }
+
+        button {
+            background: #0084ff;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        label {
+            color: white;
+            font-size: 14px;
+        }
+        
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="marquee-container">
+        <div id="scrolling-text">TYPE MESSAGE</div>
+    </div>
+
+    <div id="controls">
+        <input type="text" id="messageInput" placeholder="Type your message here..." value="HELLO WORLD">
+        
+        <div class="row">
+            <input type="color" id="colorPicker" value="#00ff00">
+            <button id="ledToggle">LED FX: OFF</button>
+        </div>
+
+        <div class="row">
+            <label>Speed:</label>
+            <input type="range" id="speedSlider" min="1" max="50" value="10">
+        </div>
+
+        <button id="copyLinkBtn">Copy Link to Send</button>
+        <div style="text-align: center; color: #888; font-size: 12px;">(Tap background to hide controls)</div>
+    </div>
+
+    <script>
+        // --- 1. SETUP VARIABLES ---
+        const textElement = document.getElementById('scrolling-text');
+        const container = document.getElementById('marquee-container');
+        const input = document.getElementById('messageInput');
+        const colorPicker = document.getElementById('colorPicker');
+        const speedSlider = document.getElementById('speedSlider');
+        const ledBtn = document.getElementById('ledToggle');
+        const controls = document.getElementById('controls');
+        
+        let isLedMode = false;
+
+        // --- 2. LOAD FROM URL (If receiving a message) ---
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('msg')) {
+            input.value = decodeURIComponent(params.get('msg'));
+            textElement.innerText = input.value;
+        }
+        if (params.has('color')) {
+            colorPicker.value = '#' + params.get('color');
+            textElement.style.color = '#' + params.get('color');
+        }
+        if (params.has('speed')) {
+            speedSlider.value = params.get('speed');
+            updateSpeed();
+        }
+        if (params.has('led') && params.get('led') === 'true') {
+            toggleLED();
+        }
+
+        // --- 3. CORE FUNCTIONS ---
+
+        // Update Text
+        input.addEventListener('input', () => {
+            textElement.innerText = input.value || " ";
+        });
+
+        // Update Color
+        colorPicker.addEventListener('input', () => {
+            textElement.style.color = colorPicker.value;
+        });
+
+        // Update Speed
+        function updateSpeed() {
+            // Lower value on slider = Faster duration (Wait, usually slider right = faster)
+            // Let's invert it: Slider 50 = Fast (1s), Slider 1 = Slow (20s)
+            const speedVal = parseInt(speedSlider.value);
+            const duration = 21 - (speedVal * 0.4); // Math to map 1-50 to roughly 20s-1s
+            textElement.style.animationDuration = duration + 's';
+        }
+        speedSlider.addEventListener('input', updateSpeed);
+        // Initialize speed on load
+        updateSpeed();
+
+        // Toggle LED Mode
+        function toggleLED() {
+            isLedMode = !isLedMode;
+            if (isLedMode) {
+                document.body.classList.add('led-mode');
+                textElement.style.fontFamily = "'Courier New', monospace"; 
+                ledBtn.innerText = "LED FX: ON";
+                ledBtn.style.background = "#00ff00";
+                ledBtn.style.color = "black";
+            } else {
+                document.body.classList.remove('led-mode');
+                textElement.style.fontFamily = "sans-serif";
+                ledBtn.innerText = "LED FX: OFF";
+                ledBtn.style.background = "#0084ff";
+                ledBtn.style.color = "white";
+            }
+        }
+        ledBtn.addEventListener('click', toggleLED);
+
+        // Copy Link
+        document.getElementById('copyLinkBtn').addEventListener('click', () => {
+            const baseUrl = window.location.href.split('?')[0];
+            const msg = encodeURIComponent(input.value);
+            const col = colorPicker.value.replace('#', '');
+            const spd = speedSlider.value;
+            const led = isLedMode;
+            
+            const fullLink = `${baseUrl}?msg=${msg}&color=${col}&speed=${spd}&led=${led}`;
+            
+            navigator.clipboard.writeText(fullLink).then(() => {
+                alert("Link copied! Send it to your friend.");
+            });
+        });
+
+        // --- 4. TAP TO HIDE CONTROLS (THE FIX) ---
+        document.body.addEventListener('click', (e) => {
+            // Check if we clicked INSIDE the control panel
+            const clickedInsideControls = controls.contains(e.target);
+
+            // If we clicked the background (not the controls), toggle visibility
+            if (!clickedInsideControls) {
+                controls.classList.toggle('hidden');
+            }
+        });
+
+    </script>
+</body>
+</html>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
