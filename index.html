@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secret Message</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #111827;
+            color: #f3f4f6;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* The Container for the words */
+        #message-container {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 40px;
+            min-height: 100px;
+            line-height: 1.5;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        /* HIDDEN STATE: Looks like a black redacted bar */
+        .word {
+            background-color: #f3f4f6; /* White block */
+            color: #f3f4f6; /* White text (invisible) */
+            padding: 5px 10px;
+            border-radius: 4px;
+            user-select: none;
+            transition: all 0.5s ease;
+            cursor: pointer;
+        }
+
+        /* REVEALED STATE: Text appears */
+        .word.revealed {
+            background-color: transparent;
+            color: #22c55e; /* Green text */
+            text-shadow: 0 0 10px #22c55e;
+        }
+
+        /* BLINK ANIMATION */
+        .blinking {
+            animation: blinker 0.8s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        input {
+            background: #1f2937;
+            border: 1px solid #374151;
+            padding: 10px;
+            color: white;
+            border-radius: 5px;
+            width: 300px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+
+    </style>
+</head>
+<body>
+
+    <h1 class="text-gray-500 text-sm uppercase tracking-widest mb-10">Top Secret Terminal</h1>
+
+    <div id="setup-area">
+        <input type="text" id="input-msg" placeholder="Enter your secret message..." value="HELLO WORLD">
+        <br>
+        <button onclick="setMessage()" class="bg-gray-700 text-white mt-2">LOAD MESSAGE</button>
+    </div>
+
+    <div id="message-container">
+        </div>
+
+    <div class="flex gap-4 mt-10">
+        <button onclick="toggleReveal()" id="btn-reveal" class="bg-blue-600 text-white shadow-lg hover:bg-blue-500">
+            REVEAL WORDS
+        </button>
+        
+        <button onclick="toggleBlink()" id="btn-blink" class="bg-red-600 text-white shadow-lg hover:bg-red-500">
+            BLINK MODE
+        </button>
+    </div>
+
+    <script>
+        let isRevealed = false;
+        let isBlinking = false;
+
+        function setMessage() {
+            const input = document.getElementById('input-msg').value.toUpperCase();
+            const container = document.getElementById('message-container');
+            
+            // Clear old message
+            container.innerHTML = '';
+            
+            // Reset states
+            isRevealed = false;
+            isBlinking = false;
+            updateButtons();
+
+            // Create spans for each word so they handle nicely
+            const words = input.split(' ');
+            words.forEach(wordText => {
+                const span = document.createElement('span');
+                span.innerText = wordText;
+                span.className = 'word'; // Start hidden
+                container.appendChild(span);
+            });
+        }
+
+        function toggleReveal() {
+            const words = document.querySelectorAll('.word');
+            isRevealed = !isRevealed;
+            
+            words.forEach(w => {
+                if(isRevealed) {
+                    w.classList.add('revealed');
+                } else {
+                    w.classList.remove('revealed');
+                }
+            });
+            updateButtons();
+        }
+
+        function toggleBlink() {
+            const container = document.getElementById('message-container');
+            isBlinking = !isBlinking;
+            
+            if(isBlinking) {
+                container.classList.add('blinking');
+            } else {
+                container.classList.remove('blinking');
+            }
+            updateButtons();
+        }
+
+        function updateButtons() {
+            const revBtn = document.getElementById('btn-reveal');
+            const blkBtn = document.getElementById('btn-blink');
+
+            revBtn.innerText = isRevealed ? "HIDE WORDS" : "REVEAL WORDS";
+            revBtn.className = isRevealed ? "bg-gray-600 text-white" : "bg-blue-600 text-white shadow-lg hover:bg-blue-500";
+
+            blkBtn.innerText = isBlinking ? "STOP BLINKING" : "BLINK MODE";
+            blkBtn.className = isBlinking ? "bg-gray-600 text-white" : "bg-red-600 text-white shadow-lg hover:bg-red-500";
+        }
+
+        // Initialize with default
+        setMessage();
+    </script>
+
+</body>
+</html>
