@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shareable Scrolling Banner</title>
+    <style>
+        body {
+            background-color: black;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: sans-serif;
+            color: white;
+        }
+
+        .outer-banner-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        .banner-container {
+            position: relative;
+            width: 80%;
+            height: auto;
+            overflow: hidden;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .banner-text {
+            white-space: nowrap;
+            font-size: 30px;
+            position: relative;
+            text-align: center;
+            animation: scrollText linear infinite;
+            animation-duration: 10s; /* Default duration */
+        }
+
+        @keyframes scrollText {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        .controls {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .controls label,
+        .controls input {
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        #shareButton {
+            background-color: rgba(0, 123, 255, 0.8);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #shareButton:hover {
+            background-color: rgba(0, 123, 255, 1);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <label for="textInput">Enter your message:</label>
+        <input type="text" id="textInput" value="Shareable Scrolling Message">
+        <label for="speedInput">Speed:</label>
+        <input type="number" id="speedInput" value="10" min="1" max="30" step="1">
+        <button id="shareButton">Share Link</button>
+    </div>
+
+    <div class="outer-banner-container">
+        <div class="banner-container">
+            <div class="banner-text">Shareable Scrolling Message</div>
+        </div>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('textInput');
+        const bannerText = document.querySelector('.banner-text');
+        const shareButton = document.getElementById('shareButton');
+        const speedInput = document.getElementById('speedInput');
+
+        // Function to update the banner text and speed
+        function updateBanner() {
+            bannerText.textContent = textInput.value;
+            bannerText.style.animationDuration = `${speedInput.value}s`;
+            updateURL();
+        }
+
+        // Function to update the URL
+        function updateURL() {
+            const text = textInput.value;
+            const speed = speedInput.value;
+            const encodedText = encodeURIComponent(text);
+            const baseURL = window.location.pathname;
+            const newURL = `${baseURL}?text=${encodedText}&speed=${speed}`;
+            window.history.pushState({ path: newURL }, '', newURL);
+        }
+
+        // Function to load the text and speed from the URL
+        function loadFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const text = urlParams.get('text');
+            const speed = urlParams.get('speed');
+
+            if (text) {
+                textInput.value = decodeURIComponent(text);
+            }
+
+            if (speed) {
+                speedInput.value = speed;
+            }
+            updateBanner();
+        }
+
+        // Event listener for text input
+        textInput.addEventListener('input', updateBanner);
+
+         // Event listener for speed input
+        speedInput.addEventListener('input', updateBanner);
+
+        // Event listener for the share button
+        shareButton.addEventListener('click', async () => {
+            try {
+                updateURL(); // Make sure URL is up to date
+                if (navigator.share) {
+                    await navigator.share({
+                        title: 'Check out my scrolling banner!',
+                        url: window.location.href,
+                    });
+                    console.log('Shared successfully');
+                } else {
+                    alert('Web Share API is not supported in your browser. Copy the URL to share.');
+                }
+            } catch (error) {
+                console.error('Error sharing:', error);
+            }
+        });
+
+        // Load from URL on page load
+        loadFromURL();
+
+    </script>
+</body>
+</html>
