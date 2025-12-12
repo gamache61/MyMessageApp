@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Special Message Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+
+    <style>
+        body {
+            background-color: #000000;
+            color: #f3f4f6;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- STAGE --- */
+        #stage {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            perspective: 1000px; /* For 3D flying effect */
+        }
+
+        #message-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.2rem;
+            width: 100%;
+            pointer-events: none; /* Let clicks pass through */
+        }
+
+        /* --- BASE CHARACTER STYLE --- */
+        .char {
+            font-size: 4rem; /* Adjusted for mobile fit */
+            font-weight: 900;
+            color: #22c55e;
+            text-shadow: 0 0 20px #22c55e;
+            display: inline-block;
+            white-space: pre;
+            /* Default state is visible and still */
+            transform: translate3d(0,0,0) rotate(0deg) scale(1);
+            opacity: 1;
+        }
+
+        /* --- EFFECT 1: SCROLL (Ticker) --- */
+        #message-content.scroll-mode {
+            flex-wrap: nowrap;
+            position: absolute;
+            white-space: nowrap;
+            animation: scroll-left 10s linear infinite;
+            justify-content: flex-start;
+            width: auto;
+        }
+        @keyframes scroll-left {
+            from { transform: translateX(100vw); }
+            to { transform: translateX(-100%); }
+        }
+
+        /* --- EFFECT 2: BLINK --- */
+        .blinking .char {
+            animation: blinker 0.2s infinite alternate;
+        }
+        @keyframes blinker {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* --- EFFECT 3: CHAOS FLY IN --- */
+        .flying .char {
+            /* Uses CSS Variables set by JS for random positions */
+            animation: fly-cycle 4s ease-in-out infinite;
+        }
+
+        @keyframes fly-cycle {
+            0% {
+                opacity: 0;
+                transform: translate3d(var(--rx), var(--ry), var(--rz)) rotate(var(--rr)) scale(0);
+            }
+            30% {
+                opacity: 1;
+                transform: translate3d(0,0,0) rotate(0deg) scale(1); /* Landed */
+            }
+            80% {
+                opacity: 1;
+                transform: translate3d(0,0,0) rotate(0deg) scale(1); /* Stay Readble */
+            }
+            100% {
+                opacity: 0;
+                transform: translate3d(var(--rx), var(--ry), -500px) rotate(var(--rr)); /* Explode out */
+            }
+        }
+
+        /* --- UI PANEL --- */
+        #ui-panel {
+            background: #111827;
+            border-bottom: 2px solid #374151;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 50;
+            transition: opacity 0.5s;
+        }
+
+        input {
+            background: #000;
+            border: 2px solid #374151;
+            padding: 15px;
+            font-size: 1.5rem;
+            color: white;
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: transform 0.1s;
+            border: 2px solid transparent;
+        }
+        button:active { transform: scale(0.95); }
+        
+        /* Active Button State (Shows which is on) */
+        button.active-btn {
+            border-color: white;
+            box-shadow: 0 0 15px rgba(255,255,255,0.3);
+        }
+
+        /* Helper to hide UI completely */
+        .permanently-hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <div class="w-full text-center">
+            <label class="text-gray-400 text-sm tracking-widest uppercase block mb-2">Secret Message Terminal</label>
+            <input type="text" id="input-msg" value="I LOVE YOU">
+        </div>
+
+        <div class="btn-group">
+            <button onclick="activateFly()" id="btn-fly" class="bg-blue-600 text-white">
+                🦋 Fly In
+            </button>
+            
+            <button onclick="activateBlink()" id="btn-blink" class="bg-red-600 text-white">
+                ⚠ Blink
+            </button>
+
+            <button onclick="activateScroll()" id="btn-scroll" class="bg-purple-600 text-white">
+                ↔ Scroll
+            </button>
+
+            <button onclick="copyLink()" class="bg-gray-700 text-gray-300 border-gray-500">
+                🔗 Copy Link
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Send link to lock screen for receiver.</p>
+    </div>
+
+    <div id="stage">
+        <div id="message-content">
+            </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('message-content');
+        const input = document.getElementById('input-msg');
+        let currentMode = null; // Tracks active mode
+
+        // --- 1. INITIALIZATION ---
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedMsg = urlParams.get('msg');
+            
+            if (sharedMsg) {
+                // RECEIVER MODE: Lock everything down.
+                const ui = document.getElementById('ui-panel');
+                ui.classList.add('permanently-hidden'); // Hide controls
+                ui.innerHTML = ""; // Destroy controls so they can't be found
+                
+                input.value = decodeURIComponent(sharedMsg);
+                activateFly(); // Default to the cool flying effect
+            } else {
+                // CREATOR MODE: Just show text
+                renderText(); 
+            }
+            
+            if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+        };
+
+        // --- 2. CORE TEXT RENDERER ---
+        function renderText() {
+            const text = input.value.toUpperCase();
+            container.innerHTML = ''; 
+            
+            const chars = text.split('');
+            chars.forEach(char => {
+                const span = document.createElement('span');
+                span.classList.add('char');
+                
+                // Assign Random Values for the Flying Effect
+                // We set these on every char, even if not flying yet
+                const rX = (Math.random() * 2000 - 1000) + 'px'; // -1000 to 1000
+                const rY = (Math.random() * 2000 - 1000) + 'px';
+                const rZ = (Math.random() * 1000 - 500) + 'px';
+                const rR = (Math.random() * 720 - 360) + 'deg';
+
+                span.style.setProperty('--rx', rX);
+                span.style.setProperty('--ry', rY);
+                span.style.setProperty('--rz', rZ);
+                span.style.setProperty('--rr', rR);
+
+                span.innerText = char;
+                container.appendChild(span);
+            });
+        }
+
+        // --- 3. RESET FUNCTION ---
+        // Turns off all other effects before starting a new one
+        function resetEffects() {
+            renderText(); // Re-render clean text
+            container.className = ''; // Remove scroll/fly classes
+            document.body.classList.remove('blinking'); // Remove blink
+            
+            // Remove active border from buttons
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active-btn'));
+        }
+
+        // --- 4. EFFECTS ---
+
+        function activateFly() {
+            resetEffects();
+            currentMode = 'fly';
+            document.getElementById('btn-fly')?.classList.add('active-btn');
+            container.classList.add('flying'); // Triggers CSS Animation
+        }
+
+        function activateBlink() {
+            resetEffects();
+            currentMode = 'blink';
+            document.getElementById('btn-blink')?.classList.add('active-btn');
+            document.body.classList.add('blinking');
+        }
+
+        function activateScroll() {
+            resetEffects();
+            currentMode = 'scroll';
+            document.getElementById('btn-scroll')?.classList.add('active-btn');
+            container.classList.add('scroll-mode');
+        }
+
+        // --- 5. SHARE LINK ---
+        function copyLink() {
+            const msg = encodeURIComponent(input.value);
+            const link = `${window.location.origin}${window.location.pathname}?msg=${msg}`;
+            
+            navigator.clipboard.writeText(link).then(() => {
+                alert("Link Copied!\n\nWhen they open this link, they will ONLY see the message flying in. No buttons, no typing.");
+            });
+        }
+
+        // Update text live if typing (only in creator mode)
+        input.addEventListener('input', () => {
+            if(currentMode) resetEffects(); // Stop effects while typing
+            renderText();
+        });
+
+    </script>
+
+</body>
+</html>
