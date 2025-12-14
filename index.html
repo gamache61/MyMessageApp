@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Paycheck Pro</title>
+
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <style>
+        /* BASE SETTINGS */
+        html {
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212; 
+            color: #ffffff;
+            /* SCROLL FIX */
+            min-height: 100%;
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            width: 100%; 
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #ffffff;
+        }
+
+        label {
+            display: block;
+            color: #b0b0b0;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        /* INPUTS */
+        input[type="text"], 
+        input[type="number"] {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background-color: #333;
+            color: white;
+            font-size: 16px; 
+            width: 100%;
+            text-align: center;
+        }
+
+        #date {
+            width: 100%;
+            max-width: 250px;
+            margin: 0 auto 20px auto;
+        }
+
+        .hours-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .hours-container > div {
+            width: 48%;
+        }
+
+        /* BUTTONS */
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-top: 10px;
+            width: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* TOTALS GRID */
+        .totals-container {
+            margin-top: 30px;
+            border-top: 1px solid #444;
+            padding-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        /* ENTRIES LIST */
+        #dailyEntries {
+            margin-top: 30px;
+            border-top: 1px solid #444;
+            padding-top: 10px;
+            text-align: left;
+        }
+
+        .daily-entry {
+            background-color: #2c2c2c;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .daily-entry button {
+            background-color: #d32f2f;
+            width: auto;
+            margin-top: 0;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* SUMMARY BOX */
+        #overallTotals {
+            margin-top: 30px;
+            background-color: #252525;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #444;
+        }
+        
+        #overallTotals p {
+            font-size: 1.1em;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        #overallTotals span {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Paycheck Pro</h1>
+
+        <label for="date">Select Date</label>
+        <input type="text" id="date" readonly class="flatpickr" placeholder="Tap to select date">
+
+        <div class="hours-container">
+            <div>
+                <label for="regularHours">Regular Hrs</label>
+                <input type="number" id="regularHours" placeholder="0">
+            </div>
+            <div>
+                <label for="overtimeHours">Overtime Hrs</label>
+                <input type="number" id="overtimeHours" placeholder="0">
+            </div>
+        </div>
+
+        <button onclick="addHours()">Add Hours</button>
+
+        <div class="totals-container">
+            <div>
+                <label for="hourlyRate">Hourly Rate ($)</label>
+                <input type="number" id="hourlyRate" placeholder="0.00" onchange="saveRates()">
+            </div>
+
+            <div>
+                <label for="taxRate">Tax Rate (%)</label>
+                <input type="number" id="taxRate" placeholder="0" value="0" onchange="saveRates()">
+            </div>
+
+            <div>
+                <label>Total Reg</label>
+                <input type="number" id="totalRegularHours" value="0" readonly>
+            </div>
+
+            <div>
+                <label>Total OT</label>
+                <input type="number" id="totalOvertimeHours" value="0" readonly>
+            </div>
+
+            <div>
+                <label>Gross Pay</label>
+                <input type="number" id="grossPay" value="0.00" readonly>
+            </div>
+
+            <div>
+                <label>Taxes</label>
+                <input type="number" id="taxes" value="0.00" readonly>
+            </div>
+
+            <div class="full-width">
+                <label>Net Pay</label>
+                <input type="number" id="netPay" value="0.00" readonly style="font-weight: bold; color: #4CAF50;">
+            </div>
+        </div>
+
+        <div id="dailyEntries">
+            <h2>Daily Entries</h2>
+        </div>
+
+        <button onclick="copyDailyHours()" style="background-color: #2196F3; margin-top:20px;">Copy Daily Hours</button>
+
+        <div id="overallTotals">
+            <h2>Total Summary</h2>
+            <p>Total Hours: <span id="totalHoursWorked">0.00</span></p>
+            <p>Gross Pay: <span id="overallGrossPay">0.00</span></p>
+            <p>Taxes: <span id="overallTaxes">0.00</span></p>
+            <p>Net Pay: <span id="overallNetPay">0.00</span></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        let dailyHours = {}; 
+
+        window.onload = function () {
+            flatpickr(".flatpickr", {
+                dateFormat: "Y-m-d",
+                defaultDate: "today",
+                disableMobile: "true", 
+                onChange: function (selectedDates, dateStr, instance) {
+                    document.getElementById("date").value = dateStr;
+                }
+            });
+
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("date").value = today;
+
+            let stored_hours = localStorage.getItem('dailyHours');
+            if (stored_hours) {
+                try {
+                    dailyHours = JSON.parse(stored_hours);
+                } catch (e) {
+                    dailyHours = {};
+                }
+            }
+
+            loadSavedRates();
+            updateTotals();
+            displayDailyEntries();
+            displayOverallTotals();
+        };
+
+        function addHours() {
+            const regularHours = parseFloat(document.getElementById("regularHours").value) || 0;
+            const overtimeHours = parseFloat(document.getElementById("overtimeHours").value) || 0;
+            const date = document.getElementById("date").value;
+
+            if (!date) { alert("Please select a date first."); return; }
+            if (regularHours === 0 && overtimeHours === 0) { alert("Please enter hours."); return; }
+
+            dailyHours[date] = { regular: regularHours, overtime: overtimeHours };
+            localStorage.setItem('dailyHours', JSON.stringify(dailyHours));
+
+            updateTotals();
+            displayDailyEntries();
+            displayOverallTotals(); 
+            
+            document.getElementById("regularHours").value = "";
+            document.getElementById("overtimeHours").value = "";
+        }
+
+        function updateTotals() {
+            let totalRegularHours = 0;
+            let totalOvertimeHours = 0;
+            for (const date in dailyHours) {
+                totalRegularHours += dailyHours[date].regular || 0;
+                totalOvertimeHours += dailyHours[date].overtime || 0;
+            }
+            document.getElementById("totalRegularHours").value = totalRegularHours.toFixed(2);
+            document.getElementById("totalOvertimeHours").value = totalOvertimeHours.toFixed(2);
+            calculatePay(); 
+        }
+
+        function calculatePay() {
+            let hourlyRate = parseFloat(localStorage.getItem('hourlyRate')) || 0;
+            let taxRate = parseFloat(localStorage.getItem('taxRate')) || 0;
+
+            document.getElementById("hourlyRate").value = hourlyRate > 0 ? hourlyRate.toFixed(2) : "";
+            document.getElementById("taxRate").value = taxRate > 0 ? taxRate.toFixed(2) : "";
+
+            const totalRegularHours = parseFloat(document.getElementById("totalRegularHours").value) || 0;
+            const totalOvertimeHours = parseFloat(document.getElementById("totalOvertimeHours").value) || 0;
+
+            const grossPay = (totalRegularHours * hourlyRate) + (totalOvertimeHours * hourlyRate * 1.5);
+            const taxes = grossPay * (taxRate / 100);
+            const netPay = grossPay - taxes;
+
+            document.getElementById("grossPay").value = grossPay.toFixed(2);
+            document.getElementById("taxes").value = taxes.toFixed(2);
+            document.getElementById("netPay").value = netPay.toFixed(2);
+
+            updateOverallTotals(totalRegularHours + totalOvertimeHours, grossPay, taxes, netPay);
+        }
+
+        function displayDailyEntries() {
+            const dailyEntriesDiv = document.getElementById("dailyEntries");
+            dailyEntriesDiv.innerHTML = "<h2>Daily Entries</h2>"; 
+
+            const sortedDates = Object.keys(dailyHours).sort().reverse();
+            if (sortedDates.length === 0) {
+                dailyEntriesDiv.innerHTML += "<p style='text-align:center; color:#666;'>No entries yet.</p>";
+            }
+
+            for (const date of sortedDates) {
+                const regular = dailyHours[date].regular || 0;
+                const overtime = dailyHours[date].overtime || 0;
+                const total = regular + overtime;
+
+                // Format date for display (e.g., Dec 12)
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                const [y, m, d] = date.split('-');
+                const displayDate = `${monthNames[parseInt(m)-1]} ${parseInt(d)}`;
+
+                const entryDiv = document.createElement("div");
+                entryDiv.classList.add("daily-entry");
+                const entryText = document.createElement("span");
+                
+                // Display friendly format in the list too
+                entryText.innerHTML = `<strong>${displayDate}</strong><br>Total: ${parseFloat(total.toFixed(2))} (Reg: ${regular}, OT: ${overtime})`;
+                
+                entryDiv.appendChild(entryText);
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.addEventListener("click", function () { deleteDailyEntry(date); });
+                entryDiv.appendChild(deleteButton);
+                dailyEntriesDiv.appendChild(entryDiv);
+            }
+        }
+
+        function deleteDailyEntry(date) {
+            if(confirm('Delete entry for ' + date + '?')) {
+                delete dailyHours[date]; 
+                localStorage.setItem('dailyHours', JSON.stringify(dailyHours)); 
+                updateTotals(); 
+                displayDailyEntries(); 
+                displayOverallTotals(); 
+            }
+        }
+
+        function updateOverallTotals(totalHours, grossPay, taxes, netPay) {
+            localStorage.setItem('totalHours', totalHours.toFixed(2));
+            localStorage.setItem('grossPay', grossPay.toFixed(2));
+            localStorage.setItem('taxes', taxes.toFixed(2));
+            localStorage.setItem('netPay', netPay.toFixed(2));
+            displayOverallTotals();
+        }
+
+        function displayOverallTotals() {
+            document.getElementById("totalHoursWorked").textContent = localStorage.getItem('totalHours') || '0.00';
+            document.getElementById("overallGrossPay").textContent = "$" + (localStorage.getItem('grossPay') || '0.00');
+            document.getElementById("overallTaxes").textContent = "$" + (localStorage.getItem('taxes') || '0.00');
+            document.getElementById("overallNetPay").textContent = "$" + (localStorage.getItem('netPay') || '0.00');
+        }
+
+        function saveRates() {
+            let hourlyRate = parseFloat(document.getElementById("hourlyRate").value) || 0;
+            let taxRate = parseFloat(document.getElementById("taxRate").value) || 0;
+            localStorage.setItem('hourlyRate', hourlyRate.toFixed(2));
+            localStorage.setItem('taxRate', taxRate.toFixed(2));
+            calculatePay(); 
+        }
+
+        function loadSavedRates() {
+            let hourlyRate = localStorage.getItem('hourlyRate');
+            let taxRate = localStorage.getItem('taxRate');
+            if (hourlyRate) document.getElementById("hourlyRate").value = hourlyRate;
+            if (taxRate) document.getElementById("taxRate").value = taxRate;
+        }
+
+        // --- UPDATED COPY FUNCTION ---
+        function copyDailyHours() {
+            let textToCopy = "";
+            const sortedDates = Object.keys(dailyHours).sort();
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+            for (const date of sortedDates) {
+                const regular = dailyHours[date].regular || 0;
+                const overtime = dailyHours[date].overtime || 0;
+                const total = regular + overtime;
+
+                // Format: YYYY-MM-DD to "Dec 12"
+                const [year, month, day] = date.split('-');
+                const formattedDate = `${monthNames[parseInt(month)-1]} ${parseInt(day)}`;
+                
+                // Format: "13.00" -> "13", but "13.50" -> "13.5"
+                const cleanTotal = parseFloat(total.toFixed(2));
+
+                // Final string: "Dec 12 Hours-13"
+                textToCopy += `${formattedDate} Hours-${cleanTotal}\n`;
+            }
+
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => { alert("Copied to clipboard!"); })
+                .catch(err => { alert("Error copying text."); });
+        }
+    </script>
+</body>
+</html>
